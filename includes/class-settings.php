@@ -42,7 +42,7 @@ if ( !class_exists( 'Settings' ) ) {
 					<br><font size="1"></font><table class="form-table">
 						<tbody>
 							<tr>
-								<th scope="row"><label>Post Types</label></th>
+								<th scope="row"><label><?php _e( 'Post Types' ); ?></label></th>
 								<td>
 									<?php
 									$args = array(
@@ -51,7 +51,6 @@ if ( !class_exists( 'Settings' ) ) {
 									);
 									$output = 'objects'; // names or objects
 									$post_types = get_post_types( $args, $output );
-
 									if ( count( $post_types ) > 1 && !empty( $post_types ) ) {
 										?>
 										<select multiple="multiple" name="post_type[]">
@@ -63,18 +62,17 @@ if ( !class_exists( 'Settings' ) ) {
 											}
 											?>
 										</select>
-										<p class="description">Select the post types which you want to sell as a product.</p></td>
+										<p class="description"><?php _e( 'Select the post types which you want to sell as a product.' ); ?></p></td>
 									<?php
 								} else {
-									echo "Please create a post type first.";
+									_e( 'Please create a post type first.' );
 								}
 								?>
 							</tr>
 							<tr>
-								<th scope="row"><label for="name">Price</label></th>
-								<td><input name="price" type="text" id="price" class="regular-text" placeholder="Price" /><p class="description">Please mention the comma separated prices of the post types.</p></td>
+								<th scope="row"><label for="name"><?php _e( 'Price' ); ?></label></th>
+								<td><input name="price" type="text" id="price" class="regular-text" placeholder="Price" /><p class="description"><?php _e( 'Please mention the comma separated prices of the post types.' ); ?></p></td>
 							</tr>
-
 						</tbody>
 					</table>
 					<p class="submit">
@@ -101,10 +99,19 @@ if ( !class_exists( 'Settings' ) ) {
 			 */
 			$post_types = isset( $_POST['post_type'] ) ? $_POST['post_type'] : '';
 			$asproduct = get_option( 'as_product' );
+			$res = '';
 			if ( $asproduct == NULL || $asproduct == '' ) {
-				$res = add_option( 'as_product', $post_types );
+				if ( is_array( $post_types ) ) :
+				foreach ( $post_types as $key => $value ) {
+					$res = add_option( 'as_product', $value, '', 'yes' );
+				}
+			endif;
 			} elseif ( $asproduct != NULL || $asproduct != '' ) {
-				$res = update_option( 'as_product', $post_types );
+				if ( is_array( $post_types ) ) :
+				foreach ( $post_types as $key => $value ) {
+					$res = update_option( 'as_product', $value );
+				}
+			endif;
 			}
 
 			if ( $res != '' || $res != NULL ) {
@@ -120,9 +127,7 @@ if ( !class_exists( 'Settings' ) ) {
 			}
 			// add the post type to woocommerce products
 			$price = isset( $_POST['price'] ) ? $_POST['price'] : '';
-			$price = ltrim( rtrim( $price ) );
-			echo $price;
-			exit;
+			$price = explode( ",", $price );
 			if ( is_array( $post_types ) ) {
 				foreach ( $post_types as $key => $value ) {
 					$new_product = array(
@@ -133,7 +138,13 @@ if ( !class_exists( 'Settings' ) ) {
 					    'post_type' => 'product'
 					);
 					$post_id = wp_insert_post( $new_product );
-					add_post_meta( $post_id, '_price', $price );
+					if ( count( $price ) > 1 ) {
+						for ( $i = 0; $i <= count( $price ); $i++ ) {
+							add_post_meta( $post_id, '_price', $price[$i] );
+						}
+					} else {
+						add_post_meta( $post_id, '_price', $price[0] );
+					}
 				}
 			}
 		}
