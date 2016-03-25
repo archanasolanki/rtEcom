@@ -24,7 +24,7 @@ if ( !class_exists( 'Settings' ) ) {
 		// Adds admin menu page to dashboard area
 		function rtecom_admin_menu() {
 
-			add_menu_page( '', 'rtEcom', 'manage_options', 'rtecom', array( $this, 'create_settings_page' ), NULL, 26 );
+			add_menu_page( NULL, 'rtEcom', 'manage_options', 'rtecom', array( $this, 'create_settings_page' ), NULL, 26 );
 		}
 
 		/**
@@ -54,24 +54,26 @@ if ( !class_exists( 'Settings' ) ) {
 									if ( count( $post_types ) > 1 && !empty( $post_types ) ) {
 										?>
 										<select multiple="multiple" name="post_type[]">
-											<?php
+											<?php 
+											//$products = get_option( 'as_product' );
 											foreach ( $post_types as $post_type ) {
-												if ( $post_type->name != strtolower( 'product' ) ) {
-													echo '<option value="' . $post_type->name . '"><p>' . ucfirst( $post_type->label ) . '</option></p>';
-												}
+												//foreach ( $products as $product ) {
+													//if ( $product != $post_type->name ) :
+														if ( $post_type->name != strtolower( 'product' ) ) {
+															echo '<option value="' . $post_type->name . '"><p>' . ucfirst( $post_type->label ) . '</option></p>';
+														}
+													//endif;
+												//}
 											}
 											?>
 										</select>
-										<p class="description"><?php _e( 'Select the post types which you want to sell as a product.' ); ?></p></td>
-									<?php
-								} else {
-									_e( 'Please create a post type first.' );
-								}
-								?>
-							</tr>
-							<tr>
-								<th scope="row"><label for="name"><?php _e( 'Price' ); ?></label></th>
-								<td><input name="price" type="text" id="price" class="regular-text" placeholder="Price" /><p class="description"><?php _e( 'Please mention the comma separated prices of the post types.' ); ?></p></td>
+										<p class="description"><?php _e( 'Select the post types which you want to sell as a product.' ); ?></p>
+										<?php
+									} else {
+										_e( 'Please create a post type first.' );
+									}
+									?>
+								</td>
 							</tr>
 						</tbody>
 					</table>
@@ -98,58 +100,49 @@ if ( !class_exists( 'Settings' ) ) {
 			 * add_option as product
 			 */
 			$post_types = isset( $_POST['post_type'] ) ? $_POST['post_type'] : '';
-			$asproduct = get_option( 'as_product' );
-			$res = '';
-			if ( $asproduct == NULL || $asproduct == '' ) {
-				if ( is_array( $post_types ) ) :
-				foreach ( $post_types as $key => $value ) {
-					$res = add_option( 'as_product', $value, '', 'yes' );
+			if ( !empty( $post_types ) && $_POST ) {
+				$asproduct = get_option( 'as_product' );
+				$res = '';
+				if ( $asproduct == NULL || $asproduct == '' ) {
+					if ( is_array( $post_types ) ) :
+						$res = add_option( 'as_product', $post_types, '', 'yes' );
+					endif;
+				} elseif ( $asproduct != NULL || $asproduct != '' ) {
+					if ( is_array( $post_types ) ) :
+						$res = update_option( 'as_product', $post_types );
+					endif;
 				}
-			endif;
-			} elseif ( $asproduct != NULL || $asproduct != '' ) {
-				if ( is_array( $post_types ) ) :
-				foreach ( $post_types as $key => $value ) {
-					$res = update_option( 'as_product', $value );
+
+				if ( $res != '' || $res != NULL ) {
+					?>
+					<div class="updated settings-error notice is-dismissible">
+						<p><strong><?php _e( 'Post type added as a product in Woocommerce.' ); ?></strong></p>
+						<button type="button" class="notice-dismiss">
+							<span class="screen-reader-text"><?php _e( 'Dismiss this notice.' ); ?></span>
+						</button>
+					</div>
+
+					<?php
 				}
-			endif;
-			}
 
-			if ( $res != '' || $res != NULL ) {
-				?>
-				<div class="updated settings-error notice is-dismissible">
-					<p><strong>Post type added as a product in Woocommerce.</strong></p>
-					<button type="button" class="notice-dismiss">
-						<span class="screen-reader-text">Dismiss this notice.</span>
-					</button>
-				</div>
-
-				<?php
-			}
-			// add the post type to woocommerce products
-			$price = isset( $_POST['price'] ) ? $_POST['price'] : '';
-			$price = explode( ",", $price );
-			if ( is_array( $post_types ) ) {
-				foreach ( $post_types as $key => $value ) {
-					$new_product = array(
-					    'post_title' => $value,
-					    'post_status' => 'publish',
-					    'post_date' => date( 'Y-m-d H:i:s' ),
-					    'post_author' => $user_ID,
-					    'post_type' => 'product'
-					);
-					$post_id = wp_insert_post( $new_product );
-					if ( count( $price ) > 1 ) {
-						for ( $i = 0; $i <= count( $price ); $i++ ) {
-							add_post_meta( $post_id, '_price', $price[$i] );
-						}
-					} else {
-						add_post_meta( $post_id, '_price', $price[0] );
+				// add the post type to woocommerce products
+				if ( is_array( $post_types ) ) {
+					foreach ( $post_types as $post_type ) {
+						$new_product = array(
+						    'post_title' => $post_type,
+						    'post_status' => 'publish',
+						    'post_date' => date( 'Y-m-d H:i:s' ),
+						    'post_author' => $user_ID,
+						    'post_type' => 'product'
+						);
+						$post_id = wp_insert_post( $new_product );
 					}
+				} elseif ( empty( $post_types ) && $_POST ) {
+					echo 'Please select at least one post type.';
 				}
 			}
 		}
 
 	}
 
-}
-
+}	
